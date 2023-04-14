@@ -72,7 +72,7 @@ async fn main() {
   
     // create a unique queue and bind it to the exchange systemmonitor
     let uuid = Uuid::new_v4();
-    let queue = uuid.as_hyphenated().to_string();
+    let queue = format!("c_systemmonitor_{}", uuid.as_hyphenated().to_string());
     let args = BasicConsumeArguments::new(
         &queue,
         format!("{} sub_monitor", queue).as_str()
