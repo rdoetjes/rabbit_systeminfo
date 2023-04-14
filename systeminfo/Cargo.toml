@@ -1,0 +1,17 @@
+[package]
+name = "systeminfo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+time = "0.2.23"
+sysinfo = "0.28.4"
+hyper = "0.14.12"
+amqprs = "1.2.0"
+tokio = "1.27.0"
+serde = "1.0.160"
+serde_json = "1.0.96"
+
