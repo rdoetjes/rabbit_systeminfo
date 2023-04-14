@@ -104,7 +104,7 @@ async fn main() {
 
     loop{
         get_sys_info(&mut connection, &mut channel, &connection_details, &mut sys, &mut details).await;
-        thread::sleep(time::Duration::from_millis(1000));     
+        thread::sleep(time::Duration::from_millis(100));     
     }
     
 }

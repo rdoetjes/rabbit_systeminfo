@@ -69,8 +69,6 @@ struct RabbitConnect{
 #[tokio::main]
 async fn main() {
     let connection_details = RabbitConnect{host: "localhost".to_string(), port: 5672, username: "guest".to_string(), password: "herpies".to_string(),};   
-    let mut connection = connect_rabbitmq(&connection_details).await;
-    let mut channel = channel_rabbitmq(&connection).await;
   
     // create a unique queue and bind it to the exchange systemmonitor
     let uuid = Uuid::new_v4();
@@ -81,31 +79,39 @@ async fn main() {
     );
     
     //this loop makes sure that on error we do a whole new reconnect and setup of the new queue and consumer/error structs
+    //it will try to reconnect every two seconds in the connect_rabbitmq
+    //when a connection is made it will create a new channel on that connection and bind the queue to the exchange and spawn an new worker
+    //you can also use the tokio::spawn JoinHandle that's being returned and Join the task(s) and act accordingly when the await with an error.
+    //this loop shows a simple recover scenario as a concept
     loop{
+        let mut connection = connect_rabbitmq(&connection_details).await;
+        let mut channel = channel_rabbitmq(&connection).await;
 
         bind_queue_to_exchange(&mut connection, &mut channel, &connection_details, &queue).await;
 
         let (ctag, mut messages_rx) = channel.basic_consume_rx(args.clone()).await.unwrap();
 
-        //this is the actuall worker logiv
-        while let Some(msg) = messages_rx.recv().await {
-            let a = msg.content.unwrap();
-            let s = String::from_utf8_lossy(&a);
-            
-            //call your own function and do something usefull and return Ok or Err and on Ok ack the message, this way you don't loose messages
-            //this is assuming there are no symatic errors in the message in that case when the message needs to be discarded also call ack.
-            //but that is up to your functional error handling
-            println!("{}", s); 
+        //this is the actual worker logic, spawed with ansync tokio process
+        let join = tokio::spawn( async move {
+            while let Some(msg) = messages_rx.recv().await {
+                let a = msg.content.unwrap();
+                let s = String::from_utf8_lossy(&a);
+                
+                //call your own function and do something usefull and return Ok or Err and on Ok ack the message, this way you don't loose messages
+                //this is assuming there are no symatic errors in the message in that case when the message needs to be discarded also call ack.
+                //but that is up to your functional error handling
+                println!("{}", s); 
 
-            let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
-            let _ = channel.basic_ack(args).await;
-        }
+                let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
+                let _ = channel.basic_ack(args).await;
+            }
 
-        // this is what to do when we get a nerror
-        if let Err(e) = channel.basic_cancel(BasicCancelArguments::new(&ctag)).await {
-            println!("error {}", e.to_string());
-        };
+            // this is what to do when we get a nerror
+            if let Err(e) = channel.basic_cancel(BasicCancelArguments::new(&ctag)).await {
+                println!("error {}", e.to_string());
+            };
+        }); // we just await here otherwise we keep looping for no good reason.
 
-        println!("reconnection happened....");
+        let _ = join.await;
     }
 }
