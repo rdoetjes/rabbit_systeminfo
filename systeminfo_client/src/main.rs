@@ -59,12 +59,6 @@ async fn bind_queue_to_exchange(connection: &mut amqprs::connection::Connection,
 
 }
 
-
-
-async fn get_sys_info(connection: &mut amqprs::connection::Connection, channel: &mut Channel, connection_details: &RabbitConnect, queue: &str){
-        bind_queue_to_exchange(connection, channel, connection_details, queue).await;
-}
-
 struct RabbitConnect{
     host: String,
     port: u16,
@@ -107,7 +101,6 @@ async fn main() {
             println!("error {}", e.to_string());
         };
 
-        get_sys_info(&mut connection, &mut channel, &connection_details, &queue).await;
         println!("reconnection happened....");
     }
 }
