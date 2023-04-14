@@ -81,8 +81,8 @@ async fn main() {
     //this loop makes sure that on error we do a whole new reconnect and setup of the new queue and consumer/error structs
     //it will try to reconnect every two seconds in the connect_rabbitmq
     //when a connection is made it will create a new channel on that connection and bind the queue to the exchange and spawn an new worker
-    //you can also use the tokio::spawn JoinHandle that's being returned and Join the task(s) and act accordingly when the await with an error.
-    //this loop shows a simple recover scenario as a concept
+    //you can also put all connect logic in its own function and call it during setup and when the tokio join returns a Err option this would be a cleane approach
+    //but for the sake of teaching the concept a bit convoluted, hence the loop without the actual Err action
     loop{
         let mut connection = connect_rabbitmq(&connection_details).await;
         let mut channel = channel_rabbitmq(&connection).await;
