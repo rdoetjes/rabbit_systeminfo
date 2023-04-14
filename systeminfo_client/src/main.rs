@@ -91,7 +91,12 @@ async fn main() {
         while let Some(msg) = messages_rx.recv().await {
             let a = msg.content.unwrap();
             let s = String::from_utf8_lossy(&a);
-            println!("{}", s);
+            
+            //call your own function and do something usefull and return Ok or Err and on Ok ack the message, this way you don't loose messages
+            //this is assuming there are no symatic errors in the message in that case when the message needs to be discarded also call ack.
+            //but that is up to your functional error handling
+            println!("{}", s); 
+
             let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
             let _ = channel.basic_ack(args).await;
         }
