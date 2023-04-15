@@ -65,7 +65,10 @@ async fn bind_queue_to_exchange(
         println!("{}", connection);
     }
 
-    //be sure to set up a fanout exchange called all.deadletter with a queue associated to it to receive the deadletters
+    //when you want to catch the Nacked messages into the deadletter queue
+    //then be sure to set up a: "fanout exchange called all.deadletter" with a durable queue associated to it to receive the deadletters
+    //a dead letter is a message that cannot be delivered and is consciously Nacked by the consumer
+    //in this demo we nack every 10th message
     let deadletter_x: ShortStr = "x-dead-letter-exchange".try_into().unwrap();
     let deadletter_q: FieldValue = "all.deadletter".try_into().unwrap();
     let mut args: FieldTable = Default::default();
@@ -126,7 +129,8 @@ async fn system_info(connection_details: RabbitConnect) {
             //but that is up to your functional error handling
             println!("{}", s);
 
-            // every 10th message is considered "faulty"
+            // every 10th message is considered "faulty" so we can demonstrate the dead letter exchange
+            // the queue is already initialized to send nacked messages to an exchange called all.deadletter
             if i % 10 == 0 {
                 let args = BasicNackArguments::new(msg.deliver.unwrap().delivery_tag(), false, false);
                 let _ = channel.basic_nack(args).await;
