@@ -2,10 +2,11 @@ use amqprs::{
     callbacks::{DefaultChannelCallback, DefaultConnectionCallback},
     channel::{
         BasicAckArguments, BasicCancelArguments, BasicConsumeArguments, Channel,
-        QueueBindArguments, QueueDeclareArguments,
+        QueueBindArguments, QueueDeclareArguments, BasicNackArguments,
     },
-    connection::{Connection, OpenConnectionArguments},
+    connection::{Connection, OpenConnectionArguments}, FieldTable,
 };
+use amqp_serde::types::{ShortStr, FieldValue};
 use std::time;
 use uuid::Uuid;
 
@@ -64,10 +65,17 @@ async fn bind_queue_to_exchange(
         println!("{}", connection);
     }
 
+    //be sure to set up a fanout exchange called all.deadletter with a queue associated to it to receive the deadletters
+    let deadletter_x: ShortStr = "x-dead-letter-exchange".try_into().unwrap();
+    let deadletter_q: FieldValue = "all.deadletter".try_into().unwrap();
+    let mut args: FieldTable = Default::default();
+    args.insert(deadletter_x, deadletter_q);
+
     let qparams = QueueDeclareArguments::default()
         .queue(queue.to_owned())
         .auto_delete(true)
         .durable(false)
+        .arguments(args)
         .finish();
 
     let (queue, _, _) = channel.queue_declare(qparams).await.unwrap().unwrap();
@@ -106,9 +114,9 @@ async fn system_info(connection_details: RabbitConnect) {
         let mut channel = channel_rabbitmq(&connection).await;
 
         bind_queue_to_exchange(&mut connection, &mut channel, &connection_details, &queue).await;
-
         let (ctag, mut messages_rx) = channel.basic_consume_rx(args.clone()).await.unwrap();
 
+        let mut i = 0;
         while let Some(msg) = messages_rx.recv().await {
             let a = msg.content.unwrap();
             let s = String::from_utf8_lossy(&a);
@@ -118,8 +126,15 @@ async fn system_info(connection_details: RabbitConnect) {
             //but that is up to your functional error handling
             println!("{}", s);
 
-            let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
-            let _ = channel.basic_ack(args).await;
+            // every 10th message is considered "faulty"
+            if i % 10 == 0 {
+                let args = BasicNackArguments::new(msg.deliver.unwrap().delivery_tag(), false, false);
+                let _ = channel.basic_nack(args).await;
+            } else {
+                let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
+                let _ = channel.basic_ack(args).await;
+            }
+            i+=1;
         }
 
         // this is what to do when we get a nerror

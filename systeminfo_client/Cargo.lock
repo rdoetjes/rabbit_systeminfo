@@ -239,6 +239,7 @@ dependencies = [
 name = "systeminfo_client"
 version = "0.1.0"
 dependencies = [
+ "amqp_serde",
  "amqprs",
  "serde",
  "serde_json",
