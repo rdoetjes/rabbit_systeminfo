@@ -152,6 +152,6 @@ async fn main() {
             &mut details,
         )
         .await;
-        thread::sleep(time::Duration::from_millis(100));
+        thread::sleep(time::Duration::from_millis(1000));
     }
 }
