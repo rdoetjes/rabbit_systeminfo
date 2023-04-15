@@ -1,4 +1,5 @@
 use ::sysinfo::{CpuExt, System, SystemExt};
+use amqprs::DELIVERY_MODE_PERSISTENT;
 use amqprs::{
     callbacks::{DefaultChannelCallback, DefaultConnectionCallback},
     channel::{BasicPublishArguments, Channel},
@@ -8,7 +9,6 @@ use amqprs::{
 use serde::Serialize;
 use serde_json;
 use std::{thread, time};
-use amqprs::DELIVERY_MODE_PERSISTENT;
 
 #[derive(Default, Debug, Clone, Serialize)]
 struct SystemInfo {
@@ -35,12 +35,16 @@ impl SystemInfo {
 
 async fn connect_rabbitmq(connection_details: &RabbitConnect) -> Connection {
     //this is for demo and teaching purposes, you would fetch this information from a config of course
-    let mut res = Connection::open(&OpenConnectionArguments::new(
-        &connection_details.host,
-        connection_details.port,
-        &connection_details.username,
-        &connection_details.password,
-    ).virtual_host("/")).await;
+    let mut res = Connection::open(
+        &OpenConnectionArguments::new(
+            &connection_details.host,
+            connection_details.port,
+            &connection_details.username,
+            &connection_details.password,
+        )
+        .virtual_host("/"),
+    )
+    .await;
 
     while res.is_err() {
         println!("trying to connect after error");
@@ -90,7 +94,13 @@ async fn send(
     } else {
         let args = BasicPublishArguments::new("systemmonitor", "");
         channel
-            .basic_publish(BasicProperties::default().with_delivery_mode(DELIVERY_MODE_PERSISTENT).finish(), result.into(), args)
+            .basic_publish(
+                BasicProperties::default()
+                    .with_delivery_mode(DELIVERY_MODE_PERSISTENT)
+                    .finish(),
+                result.into(),
+                args,
+            )
             .await
             .unwrap();
     }
