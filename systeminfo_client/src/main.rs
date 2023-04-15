@@ -7,7 +7,6 @@ use amqprs::{
     connection::{Connection, OpenConnectionArguments},
 };
 use std::time;
-use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 async fn connect_rabbitmq(connection_details: &RabbitConnect) -> Connection {
@@ -139,6 +138,8 @@ async fn main() {
         password: "crabs".to_string(),
     };
 
+    //do note that we copy the connect_details instead of moving and borrowing you have to copy the details anyway when you habe more than one task.
+    //or wrap them in a Arc<Mutex> for the sake of the demo, we keep it simple by just copying the little amount of data that is the connection string.
     let t1 = tokio::spawn(async { system_info(connection_details).await });
 
     let _ = t1.await;
