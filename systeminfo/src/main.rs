@@ -34,7 +34,6 @@ impl SystemInfo {
 }
 
 async fn connect_rabbitmq(connection_details: &RabbitConnect) -> Connection {
-    //this is for demo and teaching purposes, you would fetch this information from a config of course
     let mut res = Connection::open(
         &OpenConnectionArguments::new(
             &connection_details.host,
