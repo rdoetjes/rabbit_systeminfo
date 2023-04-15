@@ -83,11 +83,13 @@ async fn bind_queue_to_exchange(
 
     let (queue, _, _) = channel.queue_declare(qparams).await.unwrap().unwrap();
 
+    //check if the channel is open, if not openen it
     if !channel.is_open() {
         println!("channel is not open, does exchange systemmonitor exist on rabbitMQ?");
         *channel = channel_rabbitmq(&connection).await;
     }
 
+    // bind the que to the exchange using this channel
     channel
         .queue_bind(QueueBindArguments::new(&queue, "systemmonitor", ""))
         .await
