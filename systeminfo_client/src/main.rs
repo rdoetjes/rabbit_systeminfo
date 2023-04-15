@@ -142,5 +142,6 @@ async fn main() {
     //or wrap them in a Arc<Mutex> for the sake of the demo, we keep it simple by just copying the little amount of data that is the connection string.
     let t1 = tokio::spawn(async { system_info(connection_details).await });
 
+    println!("Okay we are running async with a dedicated consumer task...");
     let _ = t1.await;
 }
