@@ -68,7 +68,7 @@ struct RabbitConnect{
 
 #[tokio::main]
 async fn main() {
-    let connection_details = RabbitConnect{host: "localhost".to_string(), port: 5672, username: "guest".to_string(), password: "herpies".to_string(),};   
+    let connection_details = RabbitConnect{host: "localhost".to_string(), port: 5672, username: "consumer".to_string(), password: "crabs".to_string(),};   
   
     // create a unique queue and bind it to the exchange systemmonitor
     let uuid = Uuid::new_v4();
