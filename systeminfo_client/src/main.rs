@@ -7,16 +7,20 @@ use amqprs::{
     connection::{Connection, OpenConnectionArguments},
 };
 use std::time;
+use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 async fn connect_rabbitmq(connection_details: &RabbitConnect) -> Connection {
     //this is for demo and teaching purposes, you would fetch this information from a config of course
-    let mut res = Connection::open(&OpenConnectionArguments::new(
-        &connection_details.host,
-        connection_details.port,
-        &connection_details.username,
-        &connection_details.password,
-    ).virtual_host("/"))
+    let mut res = Connection::open(
+        &OpenConnectionArguments::new(
+            &connection_details.host,
+            connection_details.port,
+            &connection_details.username,
+            &connection_details.password,
+        )
+        .virtual_host("/"),
+    )
     .await;
 
     while res.is_err() {
@@ -87,15 +91,7 @@ struct RabbitConnect {
     password: String,
 }
 
-#[tokio::main]
-async fn main() {
-    let connection_details = RabbitConnect {
-        host: "localhost".to_string(),
-        port: 5672,
-        username: "consumer".to_string(),
-        password: "crabs".to_string(),
-    };
-
+async fn system_info(connection_details: RabbitConnect) {
     // create a unique queue and bind it to the exchange systemmonitor
     let uuid = Uuid::new_v4();
     let queue = format!("c_systemmonitor_{}", uuid.as_hyphenated().to_string());
@@ -114,27 +110,36 @@ async fn main() {
 
         let (ctag, mut messages_rx) = channel.basic_consume_rx(args.clone()).await.unwrap();
 
-        //this is the actual worker logic, spawed with ansync tokio process
-        let join = tokio::spawn(async move {
-            while let Some(msg) = messages_rx.recv().await {
-                let a = msg.content.unwrap();
-                let s = String::from_utf8_lossy(&a);
+        while let Some(msg) = messages_rx.recv().await {
+            let a = msg.content.unwrap();
+            let s = String::from_utf8_lossy(&a);
 
-                //call your own function and do something usefull and return Ok or Err and on Ok ack the message, this way you don't loose messages
-                //this is assuming there are no symatic errors in the message in that case when the message needs to be discarded also call ack.
-                //but that is up to your functional error handling
-                println!("{}", s);
+            //call your own function and do something usefull and return Ok or Err and on Ok ack the message, this way you don't loose messages
+            //this is assuming there are no symatic errors in the message in that case when the message needs to be discarded also call ack.
+            //but that is up to your functional error handling
+            println!("{}", s);
 
-                let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
-                let _ = channel.basic_ack(args).await;
-            }
+            let args = BasicAckArguments::new(msg.deliver.unwrap().delivery_tag(), false);
+            let _ = channel.basic_ack(args).await;
+        }
 
-            // this is what to do when we get a nerror
-            if let Err(e) = channel.basic_cancel(BasicCancelArguments::new(&ctag)).await {
-                println!("error {}", e.to_string());
-            };
-        }); // we just await here otherwise we keep looping for no good reason.
-
-        let _ = join.await;
+        // this is what to do when we get a nerror
+        if let Err(e) = channel.basic_cancel(BasicCancelArguments::new(&ctag)).await {
+            println!("error {}", e.to_string());
+        };
     }
+}
+
+#[tokio::main]
+async fn main() {
+    let connection_details = RabbitConnect {
+        host: "localhost".to_string(),
+        port: 5672,
+        username: "consumer".to_string(),
+        password: "crabs".to_string(),
+    };
+
+    let t1 = tokio::spawn(async { system_info(connection_details).await });
+
+    let _ = t1.await;
 }
