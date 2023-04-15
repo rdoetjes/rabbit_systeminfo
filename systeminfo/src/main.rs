@@ -8,6 +8,7 @@ use amqprs::{
 use serde::Serialize;
 use serde_json;
 use std::{thread, time};
+use amqprs::DELIVERY_MODE_PERSISTENT;
 
 #[derive(Default, Debug, Clone, Serialize)]
 struct SystemInfo {
@@ -89,7 +90,7 @@ async fn send(
     } else {
         let args = BasicPublishArguments::new("systemmonitor", "");
         channel
-            .basic_publish(BasicProperties::default(), result.into(), args)
+            .basic_publish(BasicProperties::default().with_delivery_mode(DELIVERY_MODE_PERSISTENT).finish(), result.into(), args)
             .await
             .unwrap();
     }
@@ -151,6 +152,6 @@ async fn main() {
             &mut details,
         )
         .await;
-        thread::sleep(time::Duration::from_millis(1000));
+        thread::sleep(time::Duration::from_millis(100));
     }
 }
