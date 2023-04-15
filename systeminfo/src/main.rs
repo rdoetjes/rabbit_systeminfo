@@ -39,8 +39,7 @@ async fn connect_rabbitmq(connection_details: &RabbitConnect) -> Connection {
         connection_details.port,
         &connection_details.username,
         &connection_details.password,
-    ))
-    .await;
+    ).virtual_host("/")).await;
 
     while res.is_err() {
         println!("trying to connect after error");
