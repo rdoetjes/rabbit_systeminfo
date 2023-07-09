@@ -78,6 +78,7 @@ async fn send(
     connection: &mut amqprs::connection::Connection,
     channel: &mut Channel,
     connection_details: &RabbitConnect,
+    exchange: &str,
     result: &str,
 ) {
     if !connection.is_open() {
@@ -91,7 +92,7 @@ async fn send(
         println!("channel is not open, does exchange systemmonitor exist on rabbitMQ?");
         *channel = channel_rabbitmq(&connection).await;
     } else {
-        let args = BasicPublishArguments::new("systemmonitor", "");
+        let args = BasicPublishArguments::new(exchange, "");
         channel
             .basic_publish(
                 BasicProperties::default()
@@ -128,7 +129,7 @@ async fn get_sys_info(
     let result = serde_json::to_string(&details.to_owned())
         .expect("{}")
         .to_string();
-    send(connection, channel, connection_details, &result).await;
+    send(connection, channel, connection_details, "systemmonitor", &result).await;
 }
 
 struct RabbitConnect {

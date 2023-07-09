@@ -56,6 +56,7 @@ async fn bind_queue_to_exchange(
     connection: &mut amqprs::connection::Connection,
     channel: &mut Channel,
     connection_details: &RabbitConnect,
+    exchange: &str,
     queue: &str,
 ) {
     if !connection.is_open() {
@@ -91,7 +92,7 @@ async fn bind_queue_to_exchange(
 
     // bind the que to the exchange using this channel
     channel
-        .queue_bind(QueueBindArguments::new(&queue, "systemmonitor", ""))
+        .queue_bind(QueueBindArguments::new(&queue, exchange, ""))
         .await
         .unwrap();
 }
@@ -118,7 +119,7 @@ async fn system_info(connection_details: RabbitConnect) {
         let mut connection = connect_rabbitmq(&connection_details).await;
         let mut channel = channel_rabbitmq(&connection).await;
 
-        bind_queue_to_exchange(&mut connection, &mut channel, &connection_details, &queue).await;
+        bind_queue_to_exchange(&mut connection, &mut channel, &connection_details, "systemmonitor", &queue).await;
         let (ctag, mut messages_rx) = channel.basic_consume_rx(args.clone()).await.unwrap();
 
         let mut i = 0;
